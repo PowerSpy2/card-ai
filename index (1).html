@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CARDINAL — Build What Matters</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Bebas+Neue&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --crimson: #9B0000;
+    --crimson-bright: #C41E1E;
+    --crimson-dim: #5C0000;
+    --gold: #B8974A;
+    --gold-light: #D4B06A;
+    --black: #080808;
+    --black-2: #0F0F0F;
+    --black-3: #161616;
+    --black-4: #1E1E1E;
+    --white: #F5F0EB;
+    --white-dim: #C8C0B8;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
+  body {
+    background:var(--black);
+    color:var(--white);
+    font-family:'DM Mono',monospace;
+    overflow-x:hidden;
+    cursor:crosshair;
+    min-height:100vh;
+  }
+  body::before {
+    content:'';
+    position:fixed;
+    inset:0;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events:none;
+    z-index:9999;
+    opacity:0.35;
+  }
+  ::-webkit-scrollbar { width:3px; }
+  ::-webkit-scrollbar-track { background:var(--black); }
+  ::-webkit-scrollbar-thumb { background:var(--crimson); }
+
+  /* ── AUTH SCREEN ── */
+  #auth-screen {
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:40px;
+    position:relative;
+    overflow:hidden;
+  }
+  #auth-screen .bg {
+    position:absolute;
+    inset:0;
+    background:radial-gradient(ellipse 60% 50% at 50% 60%, rgba(155,0,0,0.13) 0%, transparent 70%);
+  }
+  .auth-box {
+    position:relative;
+    width:100%;
+    max-width:440px;
+    background:var(--black-2);
+    border:1px solid rgba(245,240,235,0.07);
+    padding:52px 44px;
+  }
+  .auth-logo {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:42px;
+    letter-spacing:10px;
+    color:var(--white);
+    margin-bottom:6px;
+  }
+  .auth-logo span { color:var(--crimson-bright); }
+  .auth-tagline {
+    font-family:'Cormorant Garamond',serif;
+    font-style:italic;
+    font-size:14px;
+    color:var(--white-dim);
+    opacity:0.6;
+    margin-bottom:40px;
+    font-weight:300;
+  }
+  .auth-tabs {
+    display:flex;
+    gap:0;
+    border-bottom:1px solid rgba(245,240,235,0.08);
+    margin-bottom:32px;
+  }
+  .auth-tab {
+    padding:10px 20px;
+    font-size:10px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--white-dim);
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    background:none;
+    border-top:none; border-left:none; border-right:none;
+    font-family:'DM Mono',monospace;
+    transition:color 0.2s, border-color 0.2s;
+  }
+  .auth-tab.active { color:var(--crimson-bright); border-bottom-color:var(--crimson-bright); }
+  .field-label {
+    font-size:9px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--crimson-bright);
+    display:block;
+    margin-bottom:8px;
+  }
+  .field-input {
+    width:100%;
+    background:var(--black-3);
+    border:1px solid rgba(245,240,235,0.1);
+    color:var(--white);
+    padding:13px 16px;
+    font-family:'DM Mono',monospace;
+    font-size:12px;
+    outline:none;
+    margin-bottom:18px;
+    transition:border-color 0.3s;
+  }
+  .field-input:focus { border-color:var(--crimson); }
+  .auth-btn {
+    width:100%;
+    background:var(--crimson);
+    border:none;
+    color:var(--white);
+    padding:14px;
+    font-family:'DM Mono',monospace;
+    font-size:11px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition:background 0.2s;
+    margin-top:4px;
+  }
+  .auth-btn:hover { background:var(--crimson-bright); }
+  .auth-btn:disabled { opacity:0.4; cursor:not-allowed; }
+  .auth-msg {
+    font-size:11px;
+    margin-top:14px;
+    padding:10px 14px;
+    border:1px solid;
+    display:none;
+  }
+  .auth-msg.error { color:var(--crimson-bright); border-color:rgba(196,30,30,0.3); background:rgba(155,0,0,0.08); }
+  .auth-msg.success { color:#4caf7d; border-color:rgba(76,175,125,0.3); background:rgba(76,175,125,0.05); }
+  .auth-sponsor {
+    text-align:center;
+    margin-top:28px;
+    font-size:9px;
+    letter-spacing:2px;
+    color:var(--gold);
+    opacity:0.6;
+    text-transform:uppercase;
+  }
+  .auth-sponsor a { color:var(--gold); text-decoration:none; }
+
+  /* ── MAIN APP ── */
+  #main-app { display:none; min-height:100vh; flex-direction:column; }
+  #main-app.active { display:flex; }
+
+  /* HEADER */
+  header {
+    position:sticky;
+    top:0;
+    z-index:100;
+    padding:18px 40px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:rgba(8,8,8,0.97);
+    border-bottom:1px solid rgba(155,0,0,0.15);
+    backdrop-filter:blur(10px);
+  }
+  .logo {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:24px;
+    letter-spacing:8px;
+    color:var(--white);
+  }
+  .logo span { color:var(--crimson-bright); }
+  .header-right {
+    display:flex;
+    align-items:center;
+    gap:24px;
+  }
+  .user-email {
+    font-size:9px;
+    letter-spacing:2px;
+    color:var(--white-dim);
+    opacity:0.5;
+    text-transform:uppercase;
+  }
+  .signout-btn {
+    background:none;
+    border:1px solid rgba(245,240,235,0.12);
+    color:var(--white-dim);
+    padding:7px 16px;
+    font-family:'DM Mono',monospace;
+    font-size:9px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition:border-color 0.2s, color 0.2s;
+  }
+  .signout-btn:hover { border-color:var(--crimson); color:var(--white); }
+
+  /* LAYOUT */
+  .app-body {
+    display:grid;
+    grid-template-columns:260px 1fr;
+    flex:1;
+    min-height:0;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    background:var(--black-2);
+    border-right:1px solid rgba(245,240,235,0.05);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .sidebar-tabs {
+    display:flex;
+    border-bottom:1px solid rgba(245,240,235,0.06);
+  }
+  .sidebar-tab {
+    flex:1;
+    padding:14px 8px;
+    font-size:9px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--white-dim);
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    background:none;
+    border-top:none; border-left:none; border-right:none;
+    font-family:'DM Mono',monospace;
+    transition:color 0.2s, border-color 0.2s;
+    text-align:center;
+  }
+  .sidebar-tab.active { color:var(--crimson-bright); border-bottom-color:var(--crimson-bright); }
+  .sidebar-content { flex:1; overflow-y:auto; padding:16px; }
+  .sidebar-section-label {
+    font-size:8px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--white-dim);
+    opacity:0.35;
+    margin-bottom:10px;
+    margin-top:4px;
+  }
+  .new-btn {
+    width:100%;
+    background:var(--crimson);
+    border:none;
+    color:var(--white);
+    padding:10px;
+    font-family:'DM Mono',monospace;
+    font-size:9px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    cursor:pointer;
+    margin-bottom:16px;
+    transition:background 0.2s;
+  }
+  .new-btn:hover { background:var(--crimson-bright); }
+  .session-item {
+    padding:10px 12px;
+    cursor:pointer;
+    border:1px solid transparent;
+    margin-bottom:6px;
+    transition:border-color 0.2s, background 0.2s;
+    position:relative;
+  }
+  .session-item:hover { border-color:rgba(245,240,235,0.08); background:rgba(245,240,235,0.02); }
+  .session-item.active { border-color:rgba(155,0,0,0.3); background:rgba(155,0,0,0.05); }
+  .session-title {
+    font-size:11px;
+    color:var(--white);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    margin-bottom:3px;
+  }
+  .session-date {
+    font-size:9px;
+    color:var(--white-dim);
+    opacity:0.4;
+    letter-spacing:1px;
+  }
+  .delete-btn {
+    position:absolute;
+    right:8px;
+    top:50%;
+    transform:translateY(-50%);
+    background:none;
+    border:none;
+    color:var(--crimson);
+    cursor:pointer;
+    font-size:12px;
+    opacity:0;
+    transition:opacity 0.2s;
+    padding:4px;
+  }
+  .session-item:hover .delete-btn { opacity:0.6; }
+  .delete-btn:hover { opacity:1 !important; }
+  .empty-state {
+    font-size:10px;
+    color:var(--white-dim);
+    opacity:0.3;
+    text-align:center;
+    padding:30px 10px;
+    letter-spacing:1px;
+    line-height:1.8;
+  }
+
+  /* MAIN CONTENT */
+  .main-content {
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    height:calc(100vh - 61px);
+  }
+  .content-panel { display:none; flex-direction:column; height:100%; }
+  .content-panel.active { display:flex; }
+
+  /* CHAT */
+  .chat-messages {
+    flex:1;
+    overflow-y:auto;
+    padding:32px 48px;
+    display:flex;
+    flex-direction:column;
+    gap:28px;
+  }
+  .message { display:flex; flex-direction:column; gap:6px; animation:fadeUp 0.3s ease both; }
+  .message-label {
+    font-size:9px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--white-dim);
+    opacity:0.4;
+  }
+  .message.assistant .message-label { color:var(--crimson-bright); opacity:1; }
+  .message-body {
+    font-family:'Cormorant Garamond',serif;
+    font-size:18px;
+    line-height:1.75;
+    color:var(--white);
+    font-weight:300;
+    max-width:780px;
+  }
+  .message.user .message-body { color:var(--white-dim); font-style:italic; }
+  .chat-bottom {
+    padding:20px 48px 28px;
+    border-top:1px solid rgba(245,240,235,0.05);
+    background:var(--black);
+  }
+  .quick-prompts {
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:14px;
+  }
+  .quick-prompt {
+    background:var(--black-3);
+    border:1px solid rgba(245,240,235,0.07);
+    color:var(--white-dim);
+    padding:6px 14px;
+    font-size:10px;
+    letter-spacing:1px;
+    cursor:pointer;
+    font-family:'DM Mono',monospace;
+    transition:border-color 0.2s, color 0.2s;
+  }
+  .quick-prompt:hover { border-color:var(--crimson); color:var(--white); }
+  .chat-input-row { display:flex; gap:10px; }
+  .chat-input {
+    flex:1;
+    background:var(--black-3);
+    border:1px solid rgba(245,240,235,0.1);
+    color:var(--white);
+    padding:14px 18px;
+    font-family:'DM Mono',monospace;
+    font-size:12px;
+    outline:none;
+    resize:none;
+    height:50px;
+    transition:border-color 0.3s;
+  }
+  .chat-input:focus { border-color:var(--crimson); }
+  .chat-input::placeholder { color:rgba(245,240,235,0.2); }
+  .send-btn {
+    background:var(--crimson);
+    border:none;
+    color:var(--white);
+    padding:0 24px;
+    font-family:'DM Mono',monospace;
+    font-size:10px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition:background 0.2s;
+    white-space:nowrap;
+  }
+  .send-btn:hover { background:var(--crimson-bright); }
+  .send-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+  /* TIMELINE */
+  .timeline-panel-inner {
+    flex:1;
+    overflow-y:auto;
+    padding:40px 48px;
+  }
+  .tl-form { max-width:680px; }
+  .tl-title {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:32px;
+    letter-spacing:5px;
+    color:var(--white);
+    margin-bottom:6px;
+  }
+  .tl-sub {
+    font-family:'Cormorant Garamond',serif;
+    font-style:italic;
+    font-size:14px;
+    color:var(--white-dim);
+    opacity:0.5;
+    margin-bottom:36px;
+  }
+  .form-label {
+    font-size:9px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--crimson-bright);
+    display:block;
+    margin-bottom:8px;
+  }
+  .form-input, .form-select, .form-textarea {
+    width:100%;
+    background:var(--black-3);
+    border:1px solid rgba(245,240,235,0.1);
+    color:var(--white);
+    padding:13px 16px;
+    font-family:'DM Mono',monospace;
+    font-size:12px;
+    outline:none;
+    margin-bottom:20px;
+    transition:border-color 0.3s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color:var(--crimson); }
+  .form-select { appearance:none; cursor:pointer; }
+  .form-select option { background:var(--black-3); }
+  .form-textarea { resize:vertical; min-height:80px; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .generate-btn {
+    background:var(--crimson);
+    border:none;
+    color:var(--white);
+    padding:14px 40px;
+    font-family:'DM Mono',monospace;
+    font-size:11px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    cursor:pointer;
+    transition:background 0.2s;
+    width:100%;
+  }
+  .generate-btn:hover { background:var(--crimson-bright); }
+  .generate-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+  /* TIMELINE VIEW */
+  .tl-view { max-width:780px; }
+  .tl-view-header { margin-bottom:36px; }
+  .tl-view-eyebrow {
+    font-size:9px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--crimson-bright);
+    margin-bottom:6px;
+  }
+  .tl-view-title {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:36px;
+    letter-spacing:4px;
+    color:var(--white);
+  }
+  .progress-label {
+    display:flex;
+    justify-content:space-between;
+    font-size:9px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--white-dim);
+    opacity:0.4;
+    margin-bottom:8px;
+  }
+  .progress-track {
+    height:2px;
+    background:var(--black-3);
+    margin-bottom:40px;
+    overflow:hidden;
+  }
+  .progress-fill {
+    height:100%;
+    background:linear-gradient(to right, var(--crimson-dim), var(--crimson-bright));
+    transition:width 0.5s ease;
+  }
+  .timeline-track { position:relative; padding-left:36px; }
+  .timeline-track::before {
+    content:'';
+    position:absolute;
+    left:6px; top:0; bottom:0;
+    width:1px;
+    background:linear-gradient(to bottom, var(--crimson), transparent);
+  }
+  .milestone {
+    position:relative;
+    margin-bottom:24px;
+    cursor:pointer;
+    transition:transform 0.2s;
+  }
+  .milestone:hover { transform:translateX(4px); }
+  .milestone::before {
+    content:'';
+    position:absolute;
+    left:-30px; top:18px;
+    width:9px; height:9px;
+    border-radius:50%;
+    background:var(--black);
+    border:2px solid var(--crimson);
+    transition:background 0.3s;
+  }
+  .milestone.completed::before { background:var(--crimson); }
+  .milestone-card {
+    background:var(--black-2);
+    border:1px solid rgba(245,240,235,0.06);
+    padding:20px 24px;
+    transition:border-color 0.2s;
+  }
+  .milestone:hover .milestone-card { border-color:rgba(155,0,0,0.35); }
+  .milestone.completed .milestone-card { border-color:rgba(155,0,0,0.25); }
+  .milestone-top {
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-bottom:8px;
+  }
+  .milestone-week {
+    font-size:9px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+    color:var(--crimson-bright);
+  }
+  .milestone-check {
+    width:18px; height:18px;
+    border:1px solid rgba(245,240,235,0.2);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    transition:background 0.2s, border-color 0.2s;
+    flex-shrink:0;
+    font-size:10px;
+  }
+  .milestone.completed .milestone-check { background:var(--crimson); border-color:var(--crimson); }
+  .milestone-check-icon { display:none; color:var(--white); }
+  .milestone.completed .milestone-check-icon { display:block; }
+  .milestone-title-text {
+    font-family:'Cormorant Garamond',serif;
+    font-size:19px;
+    font-weight:600;
+    color:var(--white);
+    margin-bottom:6px;
+    line-height:1.3;
+  }
+  .milestone-desc { font-size:11px; color:var(--white-dim); line-height:1.65; opacity:0.65; }
+  .milestone-tags { display:flex; gap:6px; margin-top:12px; flex-wrap:wrap; }
+  .milestone-tag {
+    font-size:8px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color:var(--gold);
+    border:1px solid rgba(184,151,74,0.2);
+    padding:3px 8px;
+  }
+  .back-btn {
+    background:transparent;
+    border:1px solid rgba(245,240,235,0.1);
+    color:var(--white-dim);
+    padding:9px 20px;
+    font-family:'DM Mono',monospace;
+    font-size:9px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    cursor:pointer;
+    margin-top:28px;
+    transition:border-color 0.2s, color 0.2s;
+  }
+  .back-btn:hover { border-color:var(--crimson); color:var(--white); }
+
+  /* LOADING */
+  .loading-dots span {
+    display:inline-block;
+    width:4px; height:4px;
+    background:var(--crimson-bright);
+    border-radius:50%;
+    margin:0 2px;
+    animation:pulse 1.2s ease infinite;
+  }
+  .loading-dots span:nth-child(2) { animation-delay:0.2s; }
+  .loading-dots span:nth-child(3) { animation-delay:0.4s; }
+
+  /* GENERATING */
+  .generating-overlay {
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:80px;
+    text-align:center;
+  }
+  .generating-overlay.active { display:flex; }
+  .gen-text {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:52px;
+    letter-spacing:8px;
+    color:var(--crimson-bright);
+    animation:pulse 2s ease infinite;
+    margin-bottom:12px;
+  }
+  .gen-sub { font-size:10px; letter-spacing:3px; color:var(--white-dim); opacity:0.4; text-transform:uppercase; }
+
+  /* ERROR */
+  .err {
+    font-size:11px;
+    color:var(--crimson-bright);
+    padding:10px 14px;
+    border:1px solid rgba(196,30,30,0.3);
+    background:rgba(155,0,0,0.08);
+    margin-top:10px;
+    display:none;
+  }
+
+  /* FOOTER SPONSOR */
+  .sidebar-footer {
+    padding:16px;
+    border-top:1px solid rgba(245,240,235,0.04);
+    font-size:8px;
+    letter-spacing:2px;
+    color:var(--gold);
+    opacity:0.5;
+    text-transform:uppercase;
+    line-height:1.8;
+  }
+  .sidebar-footer a { color:var(--gold); text-decoration:none; }
+
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(12px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+  @keyframes pulse {
+    0%,100% { opacity:0.3; transform:scale(0.85); }
+    50% { opacity:1; transform:scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ AUTH SCREEN ═══ -->
+<div id="auth-screen">
+  <div class="bg"></div>
+  <div class="auth-box">
+    <div class="auth-logo">C<span>A</span>RDINAL</div>
+    <div class="auth-tagline">Intelligence for those who build empires.</div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="setAuthTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="setAuthTab('signup')">Create Account</button>
+    </div>
+
+    <div id="auth-login">
+      <label class="field-label">Email</label>
+      <input class="field-input" type="email" id="login-email" placeholder="your@email.com"/>
+      <label class="field-label">Password</label>
+      <input class="field-input" type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+      <button class="auth-btn" id="login-btn" onclick="doLogin()">Enter →</button>
+      <div class="auth-msg" id="login-msg"></div>
+    </div>
+
+    <div id="auth-signup" style="display:none;">
+      <label class="field-label">Email</label>
+      <input class="field-input" type="email" id="signup-email" placeholder="your@email.com"/>
+      <label class="field-label">Password</label>
+      <input class="field-input" type="password" id="signup-password" placeholder="Min 6 characters" onkeydown="if(event.key==='Enter')doSignup()"/>
+      <button class="auth-btn" id="signup-btn" onclick="doSignup()">Create Account →</button>
+      <div class="auth-msg" id="signup-msg"></div>
+    </div>
+
+    <div class="auth-sponsor">
+      By <a href="https://arboralife.com" target="_blank">CCA Economics Club</a> &amp; Tanish · Canyon Crest Academy
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MAIN APP ═══ -->
+<div id="main-app">
+  <header>
+    <div class="logo">C<span>A</span>RDINAL</div>
+    <div class="header-right">
+      <div class="user-email" id="user-email-display"></div>
+      <button class="signout-btn" onclick="doSignout()">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-tabs">
+        <button class="sidebar-tab active" id="stab-chat" onclick="setSidebarTab('chat')">Chats</button>
+        <button class="sidebar-tab" id="stab-timeline" onclick="setSidebarTab('timeline')">Roadmaps</button>
+      </div>
+
+      <div class="sidebar-content" id="sidebar-chat-content">
+        <button class="new-btn" onclick="newChat()">+ New Chat</button>
+        <div class="sidebar-section-label">History</div>
+        <div id="chat-sessions-list"><div class="empty-state">No conversations yet.<br/>Start one below.</div></div>
+      </div>
+
+      <div class="sidebar-content" id="sidebar-timeline-content" style="display:none;">
+        <button class="new-btn" onclick="newTimeline()">+ New Roadmap</button>
+        <div class="sidebar-section-label">Saved Roadmaps</div>
+        <div id="timelines-list"><div class="empty-state">No roadmaps yet.<br/>Generate one →</div></div>
+      </div>
+
+      <div class="sidebar-footer">
+        <a href="https://arboralife.com" target="_blank">CCA Economics Club</a><br/>
+        Presented by Tanish · CCA
+      </div>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+
+      <!-- CHAT PANEL -->
+      <div class="content-panel active" id="panel-chat">
+        <div class="chat-messages" id="chat-messages">
+          <div class="message assistant">
+            <div class="message-label">Cardinal</div>
+            <div class="message-body">Welcome. I am CARDINAL — built to advise founders, club presidents, and builders who operate at a higher standard. Ask me anything about strategy, growth, operations, marketing, or leadership. What are you building?</div>
+          </div>
+        </div>
+        <div class="chat-bottom">
+          <div class="quick-prompts" id="quick-prompts">
+            <button class="quick-prompt" onclick="usePrompt(this)">How do I recruit members for my club?</button>
+            <button class="quick-prompt" onclick="usePrompt(this)">Write an outreach email to a sponsor</button>
+            <button class="quick-prompt" onclick="usePrompt(this)">How do I pitch to investors?</button>
+            <button class="quick-prompt" onclick="usePrompt(this)">Build a marketing strategy for my brand</button>
+            <button class="quick-prompt" onclick="usePrompt(this)">How do I run effective meetings?</button>
+          </div>
+          <div class="chat-input-row">
+            <textarea class="chat-input" id="chat-input" placeholder="Ask CARDINAL anything..." onkeydown="handleChatKey(event)"></textarea>
+            <button class="send-btn" id="send-btn" onclick="sendMessage()">Send →</button>
+          </div>
+          <div class="err" id="chat-err"></div>
+        </div>
+      </div>
+
+      <!-- TIMELINE PANEL -->
+      <div class="content-panel" id="panel-timeline">
+        <div class="timeline-panel-inner">
+
+          <!-- FORM -->
+          <div id="tl-form-wrap" class="tl-form">
+            <div class="tl-title">Roadmap Generator</div>
+            <div class="tl-sub">Define your mission. CARDINAL builds the path.</div>
+
+            <label class="form-label">Organization Name</label>
+            <input class="form-input" id="tl-org" placeholder="e.g. Arbora, CCA Economics Club..."/>
+
+            <div class="form-row">
+              <div>
+                <label class="form-label">Type</label>
+                <select class="form-select" id="tl-type">
+                  <option value="">Select...</option>
+                  <option>High School Club</option>
+                  <option>Student Business / Company</option>
+                  <option>Nonprofit / Community Org</option>
+                  <option>Startup</option>
+                  <option>Sports Team / Program</option>
+                  <option>Social Movement</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div>
+                <label class="form-label">Timeframe</label>
+                <select class="form-select" id="tl-time">
+                  <option value="">Select...</option>
+                  <option>1 Month</option>
+                  <option>3 Months</option>
+                  <option>6 Months</option>
+                  <option>1 Year</option>
+                  <option>2 Years</option>
+                </select>
+              </div>
+            </div>
+
+            <label class="form-label">Primary Goal</label>
+            <input class="form-input" id="tl-goal" placeholder="e.g. Grow to 50 members, launch at farmers market..."/>
+
+            <label class="form-label">Additional Context <span style="opacity:0.4;">(optional)</span></label>
+            <textarea class="form-textarea" id="tl-context" placeholder="Current stage, resources, challenges..."></textarea>
+
+            <button class="generate-btn" id="gen-btn" onclick="generateTimeline()">Generate Roadmap →</button>
+            <div class="err" id="tl-err"></div>
+          </div>
+
+          <!-- GENERATING -->
+          <div class="generating-overlay" id="tl-generating">
+            <div class="gen-text">GENERATING</div>
+            <div class="gen-sub">Crafting your roadmap</div>
+            <div style="margin-top:20px;" class="loading-dots"><span></span><span></span><span></span></div>
+          </div>
+
+          <!-- TIMELINE VIEW -->
+          <div id="tl-view-wrap" class="tl-view" style="display:none;">
+            <div class="tl-view-header">
+              <div class="tl-view-eyebrow" id="tl-meta"></div>
+              <div class="tl-view-title" id="tl-output-title"></div>
+            </div>
+            <div class="progress-label">
+              <span>Progress</span>
+              <span id="tl-pct">0%</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" id="tl-progress" style="width:0%"></div>
+            </div>
+            <div class="timeline-track" id="tl-milestones"></div>
+            <button class="back-btn" onclick="newTimeline()">← New Roadmap</button>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── SUPABASE ──
+const SUPABASE_URL = 'https://ozmaicjobuvntdlrxdpt.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96bWFpY2pvYnV2bnRkbHJ4ZHB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM1OTg5OTUsImV4cCI6MjA4OTE3NDk5NX0.2XrUY7AjU-NcMvbLtIDsNqCmPL_c1L3t_DsShhUF1og';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── STATE ──
+let currentUser = null;
+let currentSessionId = null;
+let conversationHistory = [];
+let currentTimelineId = null;
+let currentMilestones = [];
+let activeSidebarTab = 'chat';
+
+// ── INIT ──
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    showApp();
+  }
+  sb.auth.onAuthStateChange((event, session) => {
+    if (session) { currentUser = session.user; showApp(); }
+    else { currentUser = null; showAuth(); }
+  });
+}
+
+function showApp() {
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('main-app').classList.add('active');
+  document.getElementById('user-email-display').textContent = currentUser.email;
+  loadChatSessions();
+  loadTimelines();
+}
+
+function showAuth() {
+  document.getElementById('auth-screen').style.display = 'flex';
+  document.getElementById('main-app').classList.remove('active');
+}
+
+// ── AUTH ──
+function setAuthTab(tab) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('auth-login').style.display = tab === 'login' ? 'block' : 'none';
+  document.getElementById('auth-signup').style.display = tab === 'signup' ? 'block' : 'none';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  const msg = document.getElementById('login-msg');
+  if (!email || !pass) return;
+  btn.disabled = true; btn.textContent = 'Signing in...';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  btn.disabled = false; btn.textContent = 'Enter →';
+  if (error) { msg.className = 'auth-msg error'; msg.textContent = error.message; msg.style.display = 'block'; }
+}
+
+async function doSignup() {
+  const email = document.getElementById('signup-email').value.trim();
+  const pass = document.getElementById('signup-password').value;
+  const btn = document.getElementById('signup-btn');
+  const msg = document.getElementById('signup-msg');
+  if (!email || !pass) return;
+  btn.disabled = true; btn.textContent = 'Creating...';
+  const { error } = await sb.auth.signUp({ email, password: pass });
+  btn.disabled = false; btn.textContent = 'Create Account →';
+  if (error) { msg.className = 'auth-msg error'; msg.textContent = error.message; msg.style.display = 'block'; }
+  else { msg.className = 'auth-msg success'; msg.textContent = 'Account created. Check your email to confirm, then sign in.'; msg.style.display = 'block'; }
+}
+
+async function doSignout() {
+  await sb.auth.signOut();
+}
+
+// ── SIDEBAR TABS ──
+function setSidebarTab(tab) {
+  activeSidebarTab = tab;
+  document.getElementById('stab-chat').classList.toggle('active', tab === 'chat');
+  document.getElementById('stab-timeline').classList.toggle('active', tab === 'timeline');
+  document.getElementById('sidebar-chat-content').style.display = tab === 'chat' ? 'flex' : 'none';
+  document.getElementById('sidebar-timeline-content').style.display = tab === 'timeline' ? 'flex' : 'none';
+  document.getElementById('sidebar-chat-content').style.flexDirection = 'column';
+  document.getElementById('sidebar-timeline-content').style.flexDirection = 'column';
+
+  if (tab === 'chat') {
+    document.getElementById('panel-chat').classList.add('active');
+    document.getElementById('panel-timeline').classList.remove('active');
+  } else {
+    document.getElementById('panel-timeline').classList.add('active');
+    document.getElementById('panel-chat').classList.remove('active');
+  }
+}
+
+// ── CHAT ──
+async function loadChatSessions() {
+  const { data } = await sb.from('chat_sessions').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  const list = document.getElementById('chat-sessions-list');
+  if (!data || data.length === 0) { list.innerHTML = '<div class="empty-state">No conversations yet.<br/>Start one below.</div>'; return; }
+  list.innerHTML = data.map(s => `
+    <div class="session-item ${s.id === currentSessionId ? 'active' : ''}" id="si-${s.id}" onclick="loadSession('${s.id}')">
+      <div class="session-title">${s.title || 'New Conversation'}</div>
+      <div class="session-date">${new Date(s.created_at).toLocaleDateString()}</div>
+      <button class="delete-btn" onclick="deleteSession(event,'${s.id}')">×</button>
+    </div>
+  `).join('');
+}
+
+async function newChat() {
+  currentSessionId = null;
+  conversationHistory = [];
+  const msgs = document.getElementById('chat-messages');
+  msgs.innerHTML = `
+    <div class="message assistant">
+      <div class="message-label">Cardinal</div>
+      <div class="message-body">Welcome back. What are we building today?</div>
+    </div>`;
+  document.getElementById('quick-prompts').style.display = 'flex';
+  setSidebarTab('chat');
+  document.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
+}
+
+async function loadSession(id) {
+  currentSessionId = id;
+  conversationHistory = [];
+  document.querySelectorAll('.session-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('si-' + id);
+  if (el) el.classList.add('active');
+
+  const { data } = await sb.from('chat_messages').select('*').eq('session_id', id).order('created_at', { ascending: true });
+  const msgs = document.getElementById('chat-messages');
+  msgs.innerHTML = '';
+  document.getElementById('quick-prompts').style.display = 'none';
+
+  if (data) {
+    data.forEach(m => {
+      conversationHistory.push({ role: m.role, content: m.content });
+      appendMessage(m.role, m.content);
+    });
+  }
+  msgs.scrollTop = msgs.scrollHeight;
+  setSidebarTab('chat');
+}
+
+async function deleteSession(e, id) {
+  e.stopPropagation();
+  await sb.from('chat_sessions').delete().eq('id', id);
+  if (currentSessionId === id) newChat();
+  loadChatSessions();
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function usePrompt(el) {
+  document.getElementById('chat-input').value = el.textContent;
+  document.getElementById('chat-input').focus();
+}
+
+function appendMessage(role, text) {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'message ' + role;
+  div.innerHTML = `
+    <div class="message-label">${role === 'assistant' ? 'Cardinal' : 'You'}</div>
+    <div class="message-body">${text.replace(/\n/g,'<br/>')}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function showChatLoading() {
+  const msgs = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'message assistant'; div.id = 'loading-msg';
+  div.innerHTML = `<div class="message-label">Cardinal</div><div style="padding:8px 0;"><div class="loading-dots"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  document.getElementById('chat-err').style.display = 'none';
+  document.getElementById('quick-prompts').style.display = 'none';
+  input.value = '';
+  document.getElementById('send-btn').disabled = true;
+
+  appendMessage('user', text);
+  conversationHistory.push({ role: 'user', content: text });
+  showChatLoading();
+
+  try {
+    // Create session if needed
+    if (!currentSessionId) {
+      const title = text.length > 40 ? text.slice(0, 40) + '…' : text;
+      const { data: session } = await sb.from('chat_sessions').insert({ user_id: currentUser.id, title }).select().single();
+      currentSessionId = session.id;
+      loadChatSessions();
+    }
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'x-api-key':'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', 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:`You are CARDINAL — the world's most elite AI advisor for founders, entrepreneurs, and organizational leaders. Created by the CCA Economics Club and Tanish at Canyon Crest Academy, San Diego.
+
+Your persona: Brilliant, precise, direct. The confidence of a Harvard Business School professor combined with the sharpness of a McKinsey partner. Never vague, never generic. Every response delivers actionable, high-leverage insight.
+
+Expertise: company and club building, growth strategy, marketing, operations, fundraising, member recruitment, pitching, financial planning, leadership, branding, outreach, competitive positioning.
+
+Format: Clear, structured paragraphs. Use bullet points only when listing distinct items. Always concise and substantive. No corporate fluff.
+
+Tone: Premium, sharp, confident. Old money meets modern execution.`,
+        messages: conversationHistory
+      })
+    });
+
+    const data = await res.json();
+    document.getElementById('loading-msg')?.remove();
+
+    if (data.content?.[0]) {
+      const reply = data.content[0].text;
+      conversationHistory.push({ role:'assistant', content:reply });
+      appendMessage('assistant', reply);
+
+      // Save both messages
+      await sb.from('chat_messages').insert([
+        { session_id: currentSessionId, role:'user', content: text },
+        { session_id: currentSessionId, role:'assistant', content: reply }
+      ]);
+    } else throw new Error('No response');
+  } catch(err) {
+    document.getElementById('loading-msg')?.remove();
+    const errEl = document.getElementById('chat-err');
+    errEl.textContent = 'Connection interrupted. Check API access and try again.';
+    errEl.style.display = 'block';
+  }
+
+  document.getElementById('send-btn').disabled = false;
+  input.focus();
+}
+
+// ── TIMELINE ──
+async function loadTimelines() {
+  const { data } = await sb.from('timelines').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+  const list = document.getElementById('timelines-list');
+  if (!data || data.length === 0) { list.innerHTML = '<div class="empty-state">No roadmaps yet.<br/>Generate one →</div>'; return; }
+  list.innerHTML = data.map(t => `
+    <div class="session-item ${t.id === currentTimelineId ? 'active' : ''}" id="ti-${t.id}" onclick="loadTimeline('${t.id}')">
+      <div class="session-title">${t.org_name || t.title || 'Roadmap'}</div>
+      <div class="session-date">${new Date(t.created_at).toLocaleDateString()}</div>
+      <button class="delete-btn" onclick="deleteTimeline(event,'${t.id}')">×</button>
+    </div>
+  `).join('');
+}
+
+async function loadTimeline(id) {
+  currentTimelineId = id;
+  document.querySelectorAll('#timelines-list .session-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('ti-' + id);
+  if (el) el.classList.add('active');
+
+  const { data: tl } = await sb.from('timelines').select('*').eq('id', id).single();
+  const { data: ms } = await sb.from('milestones').select('*').eq('timeline_id', id).order('position', { ascending: true });
+
+  currentMilestones = ms || [];
+  showTimelineView(tl.title, tl.meta);
+  setSidebarTab('timeline');
+}
+
+async function deleteTimeline(e, id) {
+  e.stopPropagation();
+  await sb.from('timelines').delete().eq('id', id);
+  if (currentTimelineId === id) newTimeline();
+  loadTimelines();
+}
+
+function newTimeline() {
+  currentTimelineId = null;
+  currentMilestones = [];
+  document.getElementById('tl-form-wrap').style.display = 'block';
+  document.getElementById('tl-view-wrap').style.display = 'none';
+  document.getElementById('tl-generating').classList.remove('active');
+  document.getElementById('tl-org').value = '';
+  document.getElementById('tl-type').value = '';
+  document.getElementById('tl-time').value = '';
+  document.getElementById('tl-goal').value = '';
+  document.getElementById('tl-context').value = '';
+  document.getElementById('tl-err').style.display = 'none';
+  setSidebarTab('timeline');
+}
+
+async function generateTimeline() {
+  const org = document.getElementById('tl-org').value.trim();
+  const type = document.getElementById('tl-type').value;
+  const time = document.getElementById('tl-time').value;
+  const goal = document.getElementById('tl-goal').value.trim();
+  const ctx = document.getElementById('tl-context').value.trim();
+
+  if (!org || !type || !time || !goal) {
+    const err = document.getElementById('tl-err');
+    err.textContent = 'Please fill in all required fields.';
+    err.style.display = 'block';
+    return;
+  }
+
+  document.getElementById('tl-err').style.display = 'none';
+  document.getElementById('tl-form-wrap').style.display = 'none';
+  document.getElementById('tl-generating').classList.add('active');
+  document.getElementById('gen-btn').disabled = true;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'x-api-key':'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', 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{ role:'user', content:`Generate a strategic roadmap:
+Name: ${org}
+Type: ${type}
+Timeframe: ${time}
+Goal: ${goal}
+${ctx ? 'Context: ' + ctx : ''}
+
+Return ONLY a valid JSON object:
+{
+  "title": "Strategic Roadmap: ${org}",
+  "meta": "${time} · ${type}",
+  "milestones": [
+    {
+      "week": "Week 1-2",
+      "title": "Milestone title",
+      "description": "2-3 sentence actionable description",
+      "tags": ["tag1","tag2"]
+    }
+  ]
+}
+
+Generate 6-10 milestones, specific and sequenced logically. Tags: Strategy, Marketing, Operations, Finance, Outreach, Launch, Growth, Team, Branding. No preamble, no markdown, only JSON.` }]
+      })
+    });
+
+    const data = await res.json();
+    const raw = data.content[0].text.trim().replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(raw);
+
+    // Save to Supabase
+    const { data: tl } = await sb.from('timelines').insert({
+      user_id: currentUser.id,
+      title: parsed.title,
+      meta: parsed.meta,
+      org_name: org,
+      goal: goal
+    }).select().single();
+
+    currentTimelineId = tl.id;
+
+    const msRows = parsed.milestones.map((m, i) => ({
+      timeline_id: tl.id,
+      week: m.week,
+      title: m.title,
+      description: m.description,
+      tags: m.tags,
+      completed: false,
+      position: i
+    }));
+
+    const { data: savedMs } = await sb.from('milestones').insert(msRows).select();
+    currentMilestones = savedMs || [];
+
+    document.getElementById('tl-generating').classList.remove('active');
+    showTimelineView(parsed.title, parsed.meta);
+    loadTimelines();
+
+  } catch(err) {
+    document.getElementById('tl-generating').classList.remove('active');
+    document.getElementById('tl-form-wrap').style.display = 'block';
+    document.getElementById('gen-btn').disabled = false;
+    const errEl = document.getElementById('tl-err');
+    errEl.textContent = 'Generation failed. Check API access and try again.';
+    errEl.style.display = 'block';
+  }
+}
+
+function showTimelineView(title, meta) {
+  document.getElementById('tl-form-wrap').style.display = 'none';
+  document.getElementById('tl-view-wrap').style.display = 'block';
+  document.getElementById('tl-output-title').textContent = title;
+  document.getElementById('tl-meta').textContent = meta;
+  renderMilestones();
+}
+
+function renderMilestones() {
+  const container = document.getElementById('tl-milestones');
+  container.innerHTML = '';
+  currentMilestones.forEach((m, i) => {
+    const el = document.createElement('div');
+    el.className = 'milestone' + (m.completed ? ' completed' : '');
+    el.id = 'ms-' + i;
+    el.innerHTML = `
+      <div class="milestone-card">
+        <div class="milestone-top">
+          <div class="milestone-week">${m.week}</div>
+          <div class="milestone-check" onclick="toggleMilestone(${i})">
+            <span class="milestone-check-icon">✓</span>
+          </div>
+        </div>
+        <div class="milestone-title-text">${m.title}</div>
+        <div class="milestone-desc">${m.description}</div>
+        <div class="milestone-tags">${(m.tags||[]).map(t=>`<span class="milestone-tag">${t}</span>`).join('')}</div>
+      </div>`;
+    container.appendChild(el);
+  });
+  updateProgress();
+}
+
+async function toggleMilestone(idx) {
+  currentMilestones[idx].completed = !currentMilestones[idx].completed;
+  const el = document.getElementById('ms-' + idx);
+  el.classList.toggle('completed');
+  updateProgress();
+  // Save to Supabase
+  await sb.from('milestones').update({ completed: currentMilestones[idx].completed }).eq('id', currentMilestones[idx].id);
+}
+
+function updateProgress() {
+  const total = currentMilestones.length;
+  const done = currentMilestones.filter(m => m.completed).length;
+  const pct = total > 0 ? Math.round((done/total)*100) : 0;
+  document.getElementById('tl-progress').style.width = pct + '%';
+  document.getElementById('tl-pct').textContent = pct + '%';
+}
+
+// ── START ──
+init();
+</script>
+</body>
+</html>
